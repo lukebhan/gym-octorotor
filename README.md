@@ -9,8 +9,9 @@ git clone [https://github.com/lukebhan/gym-octorotor.git](https://github.com/luk
 pip install -e .
 
 **Examples**
+
 Currently there are two examples that both used physics based PID controllers. 
-The first example is just an altitude controller that plots the altitude according to some Zref.
+The first example is just an altitude controller that plots the altitude according to some Zref. Heads up: This requires matplotlib. 
 
 The second controller actually runs the openai environment and goes to some ref x, y point. 
 
