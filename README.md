@@ -4,7 +4,7 @@ This is a Octorotor fully compatible with OpenAI gym. For now, it allows you to 
 
 **Installation**
 
-git clone ![https://github.com/lukebhan/gym-octorotor.git](https://github.com/lukebhan/gym-octorotor.git)
+git clone [https://github.com/lukebhan/gym-octorotor.git](https://github.com/lukebhan/gym-octorotor.git)
 
 pip install -e .
 
