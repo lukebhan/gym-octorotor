@@ -1,8 +1,11 @@
 **Gym Octorotor**
+
 This is a Octorotor fully compatible with OpenAI gym. For now, it allows you to provide your own controllers along with your own motor and motor controller. 
 
 **Installation**
+
 git clone ![https://github.com/lukebhan/gym-octorotor.git](https://github.com/lukebhan/gym-octorotor.git)
+
 pip install -e .
 
 **Examples**
