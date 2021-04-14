@@ -4,9 +4,15 @@ This is a Octorotor fully compatible with OpenAI gym. For now, it allows you to 
 
 **Installation**
 
+```
 git clone [https://github.com/lukebhan/gym-octorotor.git](https://github.com/lukebhan/gym-octorotor.git)
 
 pip install -e .
+```
+
+You will also need
+
+- zlib
 
 **Examples**
 Currently there are two examples that both used physics based PID controllers. 
