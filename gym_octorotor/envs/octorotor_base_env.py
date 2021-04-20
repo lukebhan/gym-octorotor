@@ -28,12 +28,12 @@ class OctorotorBaseEnv(gym.Env):
         # Octorotor Params
         self.octorotor = Octocopter(OctorotorParams) 
         self.allocation = ControlAllocation(OctorotorParams)
-        self.omega = np.zeros(8)
         self.state = self.octorotor.get_state()
         self.dt = OctorotorParams["dt"]
         self.motor = OctorotorParams["motor"]
         self.motorController = OctorotorParams["motorController"]
         self.OctorotorParams = OctorotorParams
+        self.omega = np.zeros(8)
 
         # OpenAI Gym Params
         # State vector
@@ -57,18 +57,21 @@ class OctorotorBaseEnv(gym.Env):
         self.state = self.octorotor.get_state()
         return self.state, {}, {}, {}
 
-    def reset(self):
-        self.octorotor = Octocopter(self.OctorotorParams) 
-        self.allocation = ControlAllocation(self.OctorotorParams)
+    def reset(self, OctorotorParams):
+        self.octorotor = Octocopter(OctorotorParams) 
+        self.allocation = ControlAllocation(OctorotorParams)
         self.omega = np.zeros(8)
-        self.state = self.octorotor.get_state()
-        self.dt = self.OctorotorParams["dt"]
+        self.dt = OctorotorParams["dt"]
+        self.motor = OctorotorParams["motor"]
+        self.motorController = OctorotorParams["motorController"]
+        self.OctorotorParams = OctorotorParams
+        self.viewer = None
 
     def render(self,xref, yref,mode='human'):
         screen_width = 600
         screen_height = 600
         # Set width to 100x100
-        world_width = 20
+        world_width = 600
         scale = screen_width/world_width
         rotorradius = 4
         armwidth = 1
@@ -91,10 +94,10 @@ class OctorotorBaseEnv(gym.Env):
             self.add_arm((0, 0), (armlength, -armlength))
             # Build ref Point
             refPoint = rendering.make_circle(radius = rotorradius)
-            refPointTrans = rendering.Transform()
-            refPoint.add_attr(refPointTrans)
+            self.refPointTrans = rendering.Transform()
+            refPoint.add_attr(self.refPointTrans)
             refPoint.set_color(0, 0, 1)
-            refPointTrans.set_translation(xref*scale+screen_width/2, yref*scale+screen_width/2)
+            self.refPointTrans.set_translation(xref*scale+screen_width/2, yref*scale+screen_width/2)
             self.viewer.add_geom(refPoint)
             
         if self.state is None:
@@ -106,6 +109,7 @@ class OctorotorBaseEnv(gym.Env):
         rotorx = x*scale + screen_width/2.0
         rotory = y*scale + screen_width/2.0
         self.rotortrans.set_translation(rotorx, rotory)
+        self.refPointTrans.set_translation(xref*scale+screen_width/2, yref*scale+screen_width/2)
         return self.viewer.render(return_rgb_array=mode == 'rgb_array')
 
     def add_arm(self, start, end):
@@ -117,6 +121,9 @@ class OctorotorBaseEnv(gym.Env):
         if self.viewer:
             self.viewer.close()
             self.viewer = None
+
+    def update_r(self,r, idx):
+        self.motor.update_r(r, idx)
 
     def get_state(self):
         return self.state

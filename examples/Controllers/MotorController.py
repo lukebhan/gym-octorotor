@@ -26,7 +26,7 @@ class MotorController(Controller):
     # The currentState object is the current angular velocity of each motor (8 dim vector)
     # The targetValue is the target angular velocity of each motor (8 dim vector)
     def output(self, currentState, targetValue):
-        vff = self.ke*targetValue + (self.R*self.d / self.km)*np.square(targetValue)
+        vff = self.ke*targetValue + (self.R*self.d / self.km)*np.array(np.square(targetValue))
         v = self.komega.dot(targetValue - currentState) + vff
         v_const = np.zeros(8)
         for idx, item in enumerate(v):

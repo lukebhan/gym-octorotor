@@ -2,7 +2,7 @@
 # Inherits from the controller abc.
 # Implements a simple pid controller for the torque of an octorotor
 
-import numpy as np
+import numpy as np 
 from .Controller import Controller
 
 class AttitudeController(Controller):
@@ -20,8 +20,4 @@ class AttitudeController(Controller):
     # The current State objects is the Ocotorotrs current state consisting of Pos, Vel, Angle, AngleVel in 3 different directions each. 
     # The targetValue is the desired angularVelocity
     def output(self, currentState, targetValue):
-
-        kppsi = self.kp.dot(currentState[6:9]-targetValue)
-        kdpsi = self.kd.dot(currentState[9:12])
-        both = kdpsi+kppsi
-        return -self.J.dot(both)
+        return -self.J.dot(self.kp.dot(currentState[6:9]-targetValue)+self.kd.dot(currentState[9:12]))
