@@ -4,7 +4,9 @@ from gym.utils import seeding
 from gym.envs.classic_control  import rendering
 from .Octocopter import Octocopter
 from .Actuation import ControlAllocation
+import pandas as pd
 import numpy as np
+import math
 
 class OctorotorBaseEnv(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -32,8 +34,22 @@ class OctorotorBaseEnv(gym.Env):
         self.dt = OctorotorParams["dt"]
         self.motor = OctorotorParams["motor"]
         self.motorController = OctorotorParams["motorController"]
+        self.posc = OctorotorParams["positionController"]
+        self.attc = OctorotorParams["attitudeController"]
+        self.altc = OctorotorParams["altitudeController"]
         self.OctorotorParams = OctorotorParams
         self.omega = np.zeros(8)
+        self.step_count = 0
+        self.total_step_count = OctorotorParams["total_step_count"]
+
+        self.xrefarr = pd.read_csv("./Paths/EpathX.csv", header=None)[1].to_numpy()
+        self.yrefarr = pd.read_csv("./Paths/EpathY.csv", header=None)[1].to_numpy()
+        self.index = 0
+        self.xref = self.xrefarr[self.index]
+        self.yref = self.yrefarr[self.index]
+        self.zref = 0
+        self.psiref = np.zeros(3)
+        self.reward_discount = OctorotorParams["reward_discount"]
 
         # OpenAI Gym Params
         # State vector
@@ -41,23 +57,34 @@ class OctorotorBaseEnv(gym.Env):
         # state[3:5] vel
         # state[6:8] angle
         # state[9:11] angle vel
-        #self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=len(self.state), dtype=np.float32)
-        # U = [T, tau]
-        #self.action_space = spaces.Box(low=-np.inf, high=np.inf, shape=4, dtype=np.float32)
+        self.observation_space = spaces.Box(np.full(12, -np.inf, dtype="float32"), np.full(12, np.inf, dtype="float32"), dtype="float32")
+        #U = [T, tau]
+        self.action_space = spaces.Box(np.array([-1, -1, -1, -1]), np.array([1, 1, 1, 1]), dtype="float32")
         self.viewer = None
 
     def step(self, action):
         # Run through control allocation, motor controller, motor, and octorotor dynamics in this order
-        omega_ref = self.allocation.get_ref_velocity(action)
+        self.step_count += 1
+        if(self.step_count % 50 == 0 and self.index != len(self.xrefarr)):
+            self.xref = self.xrefarr[self.index]
+            self.yref = self.yrefarr[self.index]
+            self.index+=1
+        targetValues = {"xref": self.xref, "yref": self.yref}
+        self.psiref[1], self.psiref[0] = self.posc.output(self.state, targetValues)
+        tau_des = self.attc.output(self.state, self.psiref)
+        T_des = self.altc.output(self.state, self.zref)
+        udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32") + action
+        omega_ref = self.allocation.get_ref_velocity(udes)
         voltage = self.motorController.output(self.omega, omega_ref)
         self.omega = self.motor.update(voltage, self.dt)
         u = self.allocation.get_u(self.omega)
         self.octorotor.update_u(u)
         self.octorotor.update(self.dt)
         self.state = self.octorotor.get_state()
-        return self.state, {}, {}, {}
+        return self.state, self.reward(), self.episode_over(), {}
 
-    def reset(self, OctorotorParams):
+    def reset(self):
+        OctorotorParams = self.OctorotorParams
         self.octorotor = Octocopter(OctorotorParams) 
         self.allocation = ControlAllocation(OctorotorParams)
         self.omega = np.zeros(8)
@@ -65,9 +92,14 @@ class OctorotorBaseEnv(gym.Env):
         self.motor = OctorotorParams["motor"]
         self.motorController = OctorotorParams["motorController"]
         self.OctorotorParams = OctorotorParams
+        self.step_count = 0
+        self.total_step_count = OctorotorParams["total_step_count"]
         self.viewer = None
+        return self.state
 
-    def render(self,xref, yref,mode='human'):
+    def render(self,mode='human'):
+        xref = self.xref
+        yref = self.yref
         screen_width = 600
         screen_height = 600
         # Set width to 100x100
@@ -102,7 +134,6 @@ class OctorotorBaseEnv(gym.Env):
             
         if self.state is None:
             return None
-        
         # Translate Rotor according to x, y
         x = self.state[0]
         y = self.state[1]
@@ -122,8 +153,13 @@ class OctorotorBaseEnv(gym.Env):
             self.viewer.close()
             self.viewer = None
 
+    def reward(self):
+        error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))
+        return -self.reward_discount*error + 1
+
+    def episode_over(self):
+        error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))
+        return (error > 500 or self.step_count == self.total_step_count)
+
     def update_r(self,r, idx):
         self.motor.update_r(r, idx)
-
-    def get_state(self):
-        return self.state
