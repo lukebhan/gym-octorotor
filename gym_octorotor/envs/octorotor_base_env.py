@@ -73,7 +73,7 @@ class OctorotorBaseEnv(gym.Env):
         self.psiref[1], self.psiref[0] = self.posc.output(self.state, targetValues)
         tau_des = self.attc.output(self.state, self.psiref)
         T_des = self.altc.output(self.state, self.zref)
-        udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32") + action
+        udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32") + action*100
         omega_ref = self.allocation.get_ref_velocity(udes)
         voltage = self.motorController.output(self.omega, omega_ref)
         self.omega = self.motor.update(voltage, self.dt)
