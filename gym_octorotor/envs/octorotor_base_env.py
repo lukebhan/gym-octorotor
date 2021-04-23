@@ -82,7 +82,7 @@ class OctorotorBaseEnv(gym.Env):
         self.octorotor.update_u(u)
         self.octorotor.update(self.dt)
         self.state = self.octorotor.get_state()
-        return self.state, self.reward(), self.episode_over(), math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))
+        return self.state, self.reward(), self.episode_over(), {}
 
 
     def reset(self):
@@ -157,7 +157,7 @@ class OctorotorBaseEnv(gym.Env):
 
     def reward(self):
         error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))
-        return -self.reward_discount*error + 1
+        return -self.reward_discount*error
 
     def episode_over(self):
         error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))

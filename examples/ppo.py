@@ -10,7 +10,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 import gym_octorotor
 import numpy as np
-import pandas as pd
+import os
 import math
 
 # Simulation Parameters
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     OctorotorParams["reward_discount"] = 1
     
     log_dir = "log/"
-    os.makedis(log_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
 
     env = gym.make('octorotor-v0', OctorotorParams=OctorotorParams)
     env = Monitor(env, log_dir)
