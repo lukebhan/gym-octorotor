@@ -42,8 +42,8 @@ class OctorotorBaseEnv(gym.Env):
         self.step_count = 0
         self.total_step_count = OctorotorParams["total_step_count"]
 
-        self.xrefarr = pd.read_csv("./Paths/EpathX.csv", header=None)[1].to_numpy()
-        self.yrefarr = pd.read_csv("./Paths/EpathY.csv", header=None)[1].to_numpy()
+        self.xrefarr = pd.read_csv("./Paths/EpathX2.csv", header=None)[1].to_numpy()
+        self.yrefarr = pd.read_csv("./Paths/EpathY2.csv", header=None)[1].to_numpy()
         self.index = 0
         self.xref = self.xrefarr[self.index]
         self.yref = self.yrefarr[self.index]
@@ -73,7 +73,8 @@ class OctorotorBaseEnv(gym.Env):
         self.psiref[1], self.psiref[0] = self.posc.output(self.state, targetValues)
         tau_des = self.attc.output(self.state, self.psiref)
         T_des = self.altc.output(self.state, self.zref)
-        udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32") + action*100
+        #udes = np.array([T_des+10*action[0], tau_des[0]+action[1], tau_des[1]+action[2], tau_des[2]+action[3]], dtype="float32")  
+        udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32")
         omega_ref = self.allocation.get_ref_velocity(udes)
         voltage = self.motorController.output(self.omega, omega_ref)
         self.omega = self.motor.update(voltage, self.dt)
@@ -81,7 +82,8 @@ class OctorotorBaseEnv(gym.Env):
         self.octorotor.update_u(u)
         self.octorotor.update(self.dt)
         self.state = self.octorotor.get_state()
-        return self.state, self.reward(), self.episode_over(), {}
+        return self.state, self.reward(), self.episode_over(), math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))
+
 
     def reset(self):
         OctorotorParams = self.OctorotorParams
@@ -103,7 +105,7 @@ class OctorotorBaseEnv(gym.Env):
         screen_width = 600
         screen_height = 600
         # Set width to 100x100
-        world_width = 600
+        world_width = 40
         scale = screen_width/world_width
         rotorradius = 4
         armwidth = 1

@@ -7,7 +7,6 @@ from Controllers.MotorController import MotorController
 from Motors.BLDCM import BLDCM
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3 import PPO
-from stable_baselines3.common.monitor import Monitor
 import gym_octorotor
 import numpy as np
 import pandas as pd
@@ -84,13 +83,20 @@ if __name__ == "__main__":
     OctorotorParams["altitudeController"] = altc
     OctorotorParams["total_step_count"] = 5000
     OctorotorParams["reward_discount"] = 1
-    
-    log_dir = "log/"
-    os.makedis(log_dir, exist_ok=True)
 
     env = gym.make('octorotor-v0', OctorotorParams=OctorotorParams)
-    env = Monitor(env, log_dir)
     model = PPO('MlpPolicy', env, verbose=1)
-    model.learn(total_timesteps=5000*10000)
-    model.save("Experiment1")
+    model.save("ppo_cartpole")
+    steps = 0
+    model = PPO.load("ppo_cartpole")
+    a = np.zeros(12)
+    error = np.zeros(int(5000/50))
+    while steps < 5000:
+        action = np.random.uniform(low=-1, high=1, size=4)
+        a,b,c,d = env.step(action)
+        if steps % 50 == 0:
+            error[int(steps/50)] = d
+        steps += 1
+        env.render()
+    np.savetxt("errorTestBase.txt", error)
     
