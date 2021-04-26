@@ -5,11 +5,14 @@ from Controllers.AttitudeController import AttitudeController
 from Controllers.PositionController import PositionController
 from Controllers.MotorController import MotorController
 from Motors.BLDCM import BLDCM
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3 import PPO
+from stable_baselines3 import DDPG
+from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.callbacks import CheckpointCallback
 import gym_octorotor
+from stable_baselines3 import PPO
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 import math
 
@@ -76,7 +79,7 @@ if __name__ == "__main__":
     # Create Motor and motor controllers
     motor = BLDCM(MotorParams)
     motorc = MotorController(MotorParams)
-    #motor.update_r(1.9984, 2)
+    motor.update_r(1.9984, 2)
     OctorotorParams["motor"] = motor
     OctorotorParams["motorController"] = motorc
     OctorotorParams["positionController"] = posc
@@ -84,13 +87,20 @@ if __name__ == "__main__":
     OctorotorParams["altitudeController"] = altc
     OctorotorParams["total_step_count"] = 5000
     OctorotorParams["reward_discount"] = 1
+    resistance = np.full(8, 0.2371)
+    resistance[2] = 1.9984
+    OctorotorParams["resistance"] = resistance
     
     log_dir = "log/"
     os.makedirs(log_dir, exist_ok=True)
 
     env = gym.make('octorotor-v0', OctorotorParams=OctorotorParams)
     env = Monitor(env, log_dir)
-    model = PPO('MlpPolicy', env, verbose=1)
-    model.learn(total_timesteps=5000*10000)
-    model.save("Experiment1")
-    
+    n_actions = env.action_space.shape[-1]
+    action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
+    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/',
+                                             name_prefix='rl_model2_ddpg')
+    model = DDPG('MlpPolicy', env, verbose=1)
+    #model = DDPG.load("Experiment1", env=env)
+    model.learn(total_timesteps=5000*500, log_interval=10, callback=checkpoint_callback)
+    #model.save("Experiment2")
