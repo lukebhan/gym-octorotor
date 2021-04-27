@@ -99,8 +99,9 @@ if __name__ == "__main__":
     n_actions = env.action_space.shape[-1]
     action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
     checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs/',
-                                             name_prefix='rl_model2_ddpg')
-    model = DDPG('MlpPolicy', env, verbose=1)
+                                             name_prefix='rl_model2_ppo_test3')
+    #model = PPO('MlpPolicy', env, verbose=1)
     #model = DDPG.load("Experiment1", env=env)
-    model.learn(total_timesteps=5000*500, log_interval=10, callback=checkpoint_callback)
+    model = PPO.load("./logs/rl_model2_ppo_test3_2500000_steps", env=env)
+    model.learn(total_timesteps=5000*1000, log_interval=10, callback=checkpoint_callback)
     #model.save("Experiment2")

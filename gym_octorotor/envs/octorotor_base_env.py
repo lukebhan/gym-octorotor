@@ -159,7 +159,7 @@ class OctorotorBaseEnv(gym.Env):
 
     def reward(self):
         error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))
-        return -error + self.step_count
+        return max(0, 1-abs(self.xref-self.state[0])) + max(0, 1-abs(self.yref-self.state[1]))
 
     def episode_over(self):
         error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))
