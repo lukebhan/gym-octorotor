@@ -32,8 +32,11 @@ class OctorotorBaseEnv(gym.Env):
         self.xrefarr = pd.read_csv("./Paths/EpathX2.csv", header=None)[1].to_numpy()
         self.yrefarr = pd.read_csv("./Paths/EpathY2.csv", header=None)[1].to_numpy()
         self.index = 0
-        self.xref = self.xrefarr[self.index]
-        self.yref = self.yrefarr[self.index]
+        b = 10
+        a = -10
+        #self.octorotor.set_pos((b- a) * np.random.random_sample() + a, (b-a)*np.random.random_sample()+a)
+        self.xref = 2
+        self.yref = 2
         self.allocation = ControlAllocation(OctorotorParams)
         self.resistance = np.full(8, OctorotorParams["resistance"])
         self.state = np.append(np.append(np.append(self.octorotor.get_state(),self.resistance), abs(self.octorotor.get_state()[0]-self.xref)), abs(self.octorotor.get_state()[1]-self.yref))
@@ -65,15 +68,15 @@ class OctorotorBaseEnv(gym.Env):
     def step(self, action):
         # Run through control allocation, motor controller, motor, and octorotor dynamics in this order
         self.step_count += 1
-        if(self.step_count % 50 == 0 and self.index != len(self.xrefarr)):
-            self.xref = self.xrefarr[self.index]
-            self.yref = self.yrefarr[self.index]
-            self.index+=1
+        #if(self.step_count % 50 == 0 and self.index != len(self.xrefarr)):
+        #self.xref = self.xrefarr[self.index]
+        #self.yref = self.yrefarr[self.index]
+        #self.index+=1
         targetValues = {"xref": self.xref, "yref": self.yref}
         self.psiref[1], self.psiref[0] = self.posc.output(self.state, targetValues)
         tau_des = self.attc.output(self.state, self.psiref)
         T_des = self.altc.output(self.state, self.zref)
-        udes = np.array([T_des+action[0]*0.1, tau_des[0]+action[1]*0.1, tau_des[1]+action[2]*0.1, tau_des[2]+action[3]*0.1], dtype="float32")
+        udes = np.array([T_des+action[0], tau_des[0]+action[1], tau_des[1]+action[2], tau_des[2]+action[3]], dtype="float32")
         #udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32")
         omega_ref = self.allocation.get_ref_velocity(udes)
         voltage = self.motorController.output(self.omega, omega_ref)
@@ -82,11 +85,14 @@ class OctorotorBaseEnv(gym.Env):
         self.octorotor.update_u(u)
         self.octorotor.update(self.dt)
         self.state = np.append(np.append(np.append(self.octorotor.get_state(),self.resistance), abs(self.octorotor.get_state()[0]-self.xref)), abs(self.octorotor.get_state()[1]-self.yref))
-        return self.state, self.reward(), self.episode_over(), {}
+        return self.state, self.reward(), self.episode_over(), {"xerror": self.get_xerror(), "yerror": self.get_yerror()}
 
     def reset(self):
         OctorotorParams = self.OctorotorParams
         self.octorotor = Octocopter(OctorotorParams) 
+        b = 10
+        a = -10
+        #self.octorotor.set_pos((b- a) * np.random.random_sample() + a, (b-a)*np.random.random_sample()+a)
         self.allocation = ControlAllocation(OctorotorParams)
         self.omega = np.zeros(8)
         self.dt = OctorotorParams["dt"]
@@ -95,8 +101,8 @@ class OctorotorBaseEnv(gym.Env):
         self.step_count = 0
         self.total_step_count = OctorotorParams["total_step_count"]
         self.viewer = None
-        self.xref = 0
-        self.yref = 0
+        self.xref = 2
+        self.yref = 2
         self.index = 0
         self.psiref = np.zeros(3)
         return self.state
@@ -158,15 +164,24 @@ class OctorotorBaseEnv(gym.Env):
             self.viewer = None
 
     def reward(self):
-        error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))
-        return max(0, 1-abs(self.xref-self.state[0])) + max(0, 1-abs(self.yref-self.state[1]))
+        error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1])+ (self.zref-self.state[2]) * (self.zref-self.state[2]))
+        return -error + 20
 
     def episode_over(self):
-        error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]))
-        return (error > 30 or self.step_count == self.total_step_count)
+        error = math.sqrt((self.xref-self.state[0])*(self.xref-self.state[0]) + (self.yref-self.state[1]) * (self.yref-self.state[1]) + (self.zref-self.state[2]) * (self.zref-self.state[2]))
+        return self.step_count > 10000 
 
     def update_r(self,r, idx):
         self.motor.update_r(r, idx)
 
     def get_state(self):
         return self.state
+
+    def get_xerror(self):
+        return self.state[0]
+
+    def get_yerror(self):
+        return self.state[1]
+
+    def safe_ranges(self):
+        return abs(self.state[3]) > 10 or abs(self.state[4]) > 10 or abs(self.state[5])>10 or abs(self.state[11]) > 4.5 or abs(self.state[10]) > 4.5 or abs(self.state[9]) > 4.5
