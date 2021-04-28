@@ -96,11 +96,4 @@ if __name__ == "__main__":
 
     env = gym.make('octorotor-v0', OctorotorParams=OctorotorParams)
     env = Monitor(env, log_dir)
-    n_actions = env.action_space.shape[-1]
-    action_noise = NormalActionNoise(mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions))
-    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path='./logs2/',
-                                             name_prefix='rl_model2_ppo_test3')
-    #model = PPO('MlpPolicy', env, verbose=1)
-    model = DDPG('MlpPolicy',env=env, verbose=1, train_freq=(1, "step"), batch_size=1)
-    model.learn(total_timesteps=5000*1000, callback=checkpoint_callback)
     #model.save("Experiment2")
