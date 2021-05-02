@@ -90,14 +90,14 @@ if __name__ == "__main__":
     resistance = np.full(8, 0.2371)
     resistance[2] = 1.9984
     OctorotorParams["resistance"] = resistance
-    log_dir = "rl1/"
+    log_dir = "baselineMotor3Part2"
     os.makedirs(log_dir, exist_ok=True)
 
     env = gym.make('octorotor-v0', OctorotorParams=OctorotorParams)
     env = Monitor(env, log_dir)
     #policy_kwargs = dict( net_arch=dict(pi=[64], qf=[64]))
-    checkpoint_callback = CheckpointCallback(save_freq=500, save_path='./rl1/',
+    checkpoint_callback = CheckpointCallback(save_freq=500, save_path='./baselineMotor3Part2',
                                              name_prefix='model')
-    #model = PPO.load("./test25/model_2000_steps", env=env,verbose=1)
-    model = PPO("MlpPolicy", env=env, verbose=1, n_steps=5)
-    model.learn(1000, callback = checkpoint_callback)
+    model = PPO.load("./baselineMotor3/model_2000000_steps", env=env,verbose=1)
+    #model = PPO("MlpPolicy", env=env, verbose=1)
+    model.learn(2000000, callback = checkpoint_callback)
