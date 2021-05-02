@@ -88,8 +88,8 @@ if __name__ == "__main__":
     xrefarr = pd.read_csv("./Paths/EpathX.csv", header=None)[1].to_numpy()
     yrefarr = pd.read_csv("./Paths/EpathY.csv", header=None)[1].to_numpy()
     index = 1
-    xref = xrefarr[0]
-    yref = yrefarr[0]
+    xref =0
+    yref =0
     psiref = np.zeros(3)
     secondStep = 1
     total_steps = int(len(xrefarr)/2/OctorotorParams["dt"]*secondStep)
@@ -129,7 +129,6 @@ if __name__ == "__main__":
             xref = xrefarr[index]
             yref = yrefarr[index]
             index+=1
-        #env.render(xref, yref)
         state = env.get_state()
         targetValues = {"xref": xref, "yref": yref}
         psiref[1], psiref[0] = posc.output(state, targetValues)

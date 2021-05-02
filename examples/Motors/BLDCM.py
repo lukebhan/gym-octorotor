@@ -10,7 +10,7 @@ from numba import jit
 @jit
 def f(km, R, v, d, omega, ke, newR, Izzm, idx, vidx, omegaidx):
     res =  (km/R*v-d*omega*omega -km*ke /R * omega)/Izzm
-    residx = (km/newR*vidx-d*omegaidx*omegaidx-km*ke/newR*omegaidx)/Izzm
+    residx = (km/newR*vidx-d*omegaidx*omegaidx - km*ke/newR * omegaidx)/Izzm
     return res, residx
 
 
@@ -30,7 +30,7 @@ class BLDCM(Motor):
         self.Izzm = np.float32(motorArgs["Izzm"])
         self.stepNum = 0
         self.omega = np.zeros(8, dtype="float32")
-        self.ode = scipy.integrate.ode(self.omega_dot_i)
+        self.ode = scipy.integrate.ode(self.omega_dot_i).set_integrator('vode', method='bdf')
         self.idx = 0
 
     # Return a motors angular velocity moving one step in time with a given voltage
@@ -43,7 +43,7 @@ class BLDCM(Motor):
 
     # Helper Method to calculate omega_dot for our ode integrator. Can be written as a lambda function inside update for other shorter motors.
     def omega_dot_i(self, time, state):
-        res, residx = f(self.km, self.R, self.v, self.d, self.omega, self.ke, self.newR, self.Izzm, self.idx, self.v[self.idx], self.omega[self.idx]) 
+        res, residx =  f(self.km, self.R, self.v, self.d, self.omega, self.ke, self.newR, self.Izzm, self.idx, self.v[self.idx], self.omega[self.idx]) 
         res[self.idx] = residx
         return res
 

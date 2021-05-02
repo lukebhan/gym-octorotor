@@ -11,8 +11,9 @@ def _calc_rotation_matrix(angles):
     st = math.sin(angles[0])
     sp = math.sin(angles[1])
     sg = math.sin(angles[2])
-    R = np.array([[cg*cp, cp*cg*st-sg*ct, cp*cg*ct+sg*st], [cp*sg, sg*cp*st+cg*ct, sg*cp*ct-st*sg], [-sp, cp*st, cp*ct]])
+    R = np.array([[cg*cp, cp*cg*st-sg*ct, sp*cg*ct+sg*st], [cp*sg, sg*cp*st+cg*ct, sg*cp*ct-st*sg], [-sp, cp*st, cp*ct]])
     return R
+
 
 @jit
 def _calc_rotation_inverse_a(angle):
@@ -114,3 +115,7 @@ class Octocopter:
 
     def get_state(self):
         return self.state
+
+    def set_pos(self, x, y):
+        self.state[0] = x
+        self.state[1] = y
