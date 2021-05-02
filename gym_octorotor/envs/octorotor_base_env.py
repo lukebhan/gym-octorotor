@@ -59,14 +59,15 @@ class OctorotorBaseEnv(gym.Env):
         # poserrs+eulererrs
         # above + state
         # state 
-        self.observation_space = spaces.Box(np.full(6, -np.inf, dtype="float32"), np.full(6, np.inf, dtype="float32"), dtype="float32")
+        self.observation_space = spaces.Box(np.full(1, -np.inf, dtype="float32"), np.full(1, np.inf, dtype="float32"), dtype="float32")
         #U = [T, tau]
         self.action_space = spaces.Box(np.array([0.1, 0.1, 0.1, 0.1]), np.array([1, 1, 1, 1]), dtype="float32")
         self.viewer = None
 
     def step(self, action):
-        self.step_count += 1
         # Run through control allocation, motor controller, motor, and octorotor dynamics in this order
+        print(action)
+        print(self.res)
         reward = 0
         xarr = []
         yarr = []
@@ -74,26 +75,31 @@ class OctorotorBaseEnv(gym.Env):
         #self.xref = self.xrefarr[self.index]
         #self.yref = self.yrefarr[self.index]
         #self.index+=1
-        targetValues = {"xref": self.xref, "yref": self.yref}
-        self.posc.update_params(action)
-        self.psiref[1], self.psiref[0] = self.posc.output(self.state, targetValues)
-        tau_des = self.attc.output(self.state, self.psiref)
-        T_des = self.altc.output(self.state, self.zref)
-        udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32")
-        #udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32")
-        omega_ref = self.allocation.get_ref_velocity(udes)
-        voltage = self.motorController.output(self.omega, omega_ref)
-        self.omega = self.motor.update(voltage, self.dt)
-        u = self.allocation.get_u(self.omega)
-        self.octorotor.update_u(u)
-        self.octorotor.update(self.dt)
-        self.state = self.octorotor.get_state()
-        self.errors = [self.xref-self.state[0], self.yref-self.state[1], self.zref-self.state[2]]
-        self.eulererrors = [self.state[6] - self.psiref[0], self.state[7]-self.psiref[1], self.state[8]-self.psiref[2]]
-        state = np.append(self.errors, self.eulererrors)
-        return state, self.reward(), self.episode_over(), {"xerror": xarr, "yerror": yarr}
+        for k in range(2000):
+            targetValues = {"xref": self.xref, "yref": self.yref}
+            self.posc.update_params(action)
+            self.psiref[1], self.psiref[0] = self.posc.output(self.state, targetValues)
+            tau_des = self.attc.output(self.state, self.psiref)
+            T_des = self.altc.output(self.state, self.zref)
+            udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32")
+            #udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32")
+            omega_ref = self.allocation.get_ref_velocity(udes)
+            voltage = self.motorController.output(self.omega, omega_ref)
+            self.omega = self.motor.update(voltage, self.dt)
+            u = self.allocation.get_u(self.omega)
+            self.octorotor.update_u(u)
+            self.octorotor.update(self.dt)
+            self.state = self.octorotor.get_state()
+            if self.episode_over():
+                break
+            self.errors = [self.xref-self.state[0], self.yref-self.state[1], self.zref-self.state[2]]
+            self.eulererrors = [self.state[6] - self.psiref[0], self.state[7]-self.psiref[1], self.state[8]-self.psiref[2]]
+            reward+=self.reward()
+            xarr.append(self.state[0])
+            yarr.append(self.state[1])
+        return [self.res], reward, True, {"xerror": xarr, "yerror": yarr}
 
-    def reset(self):
+    def reset(self,r):
         OctorotorParams = self.OctorotorParams
         self.octorotor = Octocopter(OctorotorParams) 
         #self.octorotor.set_pos((b- a) * np.random.random_sample() + a, (b-a)*np.random.random_sample()+a)
@@ -103,8 +109,8 @@ class OctorotorBaseEnv(gym.Env):
         self.motor = OctorotorParams["motor"]
         self.motorController = OctorotorParams["motorController"]
         # between 0.7 and 1.7
-        self.res = np.random.choice([0.7, 1.7])
-        #self.res = 0.7
+        self.res = r
+        #self.res = 1.7
         self.motor.update_r(self.res, 2)
         self.step_count = 0
         self.total_step_count = OctorotorParams["total_step_count"]
@@ -117,7 +123,7 @@ class OctorotorBaseEnv(gym.Env):
         self.errors = [self.xref-self.state[0], self.yref-self.state[1], self.zref-self.state[2]]
         self.eulererrors = [self.state[3] - self.psiref[0], self.state[4]-self.psiref[1], self.state[5]-self.psiref[2]]
         state = np.append(self.errors, self.eulererrors)
-        return state
+        return [self.res]
 
     def render(self,mode='human'):
         xref = self.xref
