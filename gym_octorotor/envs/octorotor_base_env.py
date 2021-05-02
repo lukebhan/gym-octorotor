@@ -90,8 +90,6 @@ class OctorotorBaseEnv(gym.Env):
             self.octorotor.update_u(u)
             self.octorotor.update(self.dt)
             self.state = self.octorotor.get_state()
-            if self.episode_over():
-                break
             self.errors = [self.xref-self.state[0], self.yref-self.state[1], self.zref-self.state[2]]
             self.eulererrors = [self.state[6] - self.psiref[0], self.state[7]-self.psiref[1], self.state[8]-self.psiref[2]]
             reward+=self.reward()
