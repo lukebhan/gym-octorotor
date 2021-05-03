@@ -121,6 +121,7 @@ class OctorotorBaseEnv(gym.Env):
         self.errors = [self.xref-self.state[0], self.yref-self.state[1], self.zref-self.state[2]]
         self.eulererrors = [self.state[3] - self.psiref[0], self.state[4]-self.psiref[1], self.state[5]-self.psiref[2]]
         state = np.append(self.errors, self.eulererrors)
+        #guess = np.random.normal(2.0, 0.1)
         return [self.res]
 
     def render(self,mode='human'):
