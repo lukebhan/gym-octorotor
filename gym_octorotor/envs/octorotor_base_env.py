@@ -77,7 +77,7 @@ class OctorotorBaseEnv(gym.Env):
         #self.index+=1
         for k in range(2000):
             targetValues = {"xref": self.xref, "yref": self.yref}
-            self.posc.update_params(action)
+            #self.posc.update_params(action)
             self.psiref[1], self.psiref[0] = self.posc.output(self.state, targetValues)
             tau_des = self.attc.output(self.state, self.psiref)
             T_des = self.altc.output(self.state, self.zref)
@@ -109,7 +109,7 @@ class OctorotorBaseEnv(gym.Env):
         # between 0.7 and 1.7
         self.res = r
         #self.res = 1.7
-        self.motor.update_r(self.res, 2)
+        self.motor.update_r(.7, 2)
         self.step_count = 0
         self.total_step_count = OctorotorParams["total_step_count"]
         self.viewer = None
