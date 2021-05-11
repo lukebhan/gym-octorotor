@@ -60,7 +60,7 @@ class OctorotorBaseEnv(gym.Env):
         # state 
         self.observation_space = spaces.Box(np.full(1, -np.inf, dtype="float32"), np.full(1, np.inf, dtype="float32"), dtype="float32")
         #U = [T, tau]
-        self.action_space = spaces.Box(np.array([0.1, 0.1, 0.1, 0.1]), np.array([1, 1, 1, 1]), dtype="float32")
+        self.action_space = spaces.Box(np.array([0.1, 0.1, 0.1, 0.1]), np.array([10, 1, 10, 1]), dtype="float32")
         self.viewer = None
 
     def step(self, action):
@@ -72,7 +72,7 @@ class OctorotorBaseEnv(gym.Env):
         #self.xref = self.xrefarr[self.index]
         #self.yref = self.yrefarr[self.index]
         #self.index+=1
-        self.posc.update_params(action)
+        self.posc.update_params(np.array(action))
         print(action)
         print(self.res)
         k = 0
@@ -94,11 +94,11 @@ class OctorotorBaseEnv(gym.Env):
             xarr.append(self.state[0])
             yarr.append(self.state[1])
             k += 1
-            if self.episode_over():
-                k = 2001
+            #if self.episode_over():
+                #k = 2001
         return [self.res], reward, True, {"xerror": xarr, "yerror": yarr}
 
-    def reset(self):
+    def reset(self, r):
         OctorotorParams = self.OctorotorParams
         self.octorotor = Octocopter(OctorotorParams) 
         #self.octorotor.set_pos((b- a) * np.random.random_sample() + a, (b-a)*np.random.random_sample()+a)
@@ -110,10 +110,10 @@ class OctorotorBaseEnv(gym.Env):
         self.motorController = OctorotorParams["motorController"]
         # between 0.7 and 1.7
         # two motor between 0.5 and 0.9
-        self.res = np.random.choice([0.5, 1.8])
+        self.res =r
         #self.res = 0.5
         self.motor.update_r(self.res, 6)
-        #self.motor.update_r2(self.res, 5)
+        self.motor.update_r2(self.res, 5)
         self.step_count = 0
         self.total_step_count = OctorotorParams["total_step_count"]
         self.viewer = None
@@ -125,7 +125,7 @@ class OctorotorBaseEnv(gym.Env):
         self.errors = [self.xref-self.state[0], self.yref-self.state[1], self.zref-self.state[2]]
         self.eulererrors = [self.state[3] - self.psiref[0], self.state[4]-self.psiref[1], self.state[5]-self.psiref[2]]
         state = np.append(self.errors, self.eulererrors)
-        #guess = np.random.normal(self.res, 0.1)
+        guess = np.random.normal(self.res, 0.1)
         return [self.res]
 
     def render(self,mode='human'):
