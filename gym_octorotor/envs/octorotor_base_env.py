@@ -31,7 +31,7 @@ class OctorotorBaseEnv(gym.Env):
         self.octorotor = Octocopter(OctorotorParams)
         self.state = self.octorotor.get_state()
         self.xref = 5
-        self.yref = 5
+        self.yref = 0
         self.allocation = ControlAllocation(OctorotorParams)
         self.resistance = np.full(8, OctorotorParams["resistance"])
         self.dt = OctorotorParams["dt"]
@@ -76,7 +76,14 @@ class OctorotorBaseEnv(gym.Env):
         print(action)
         print(self.res)
         k = 0
-        while k < 2000:
+        refguessxarr = []
+        refguessyarr = []
+        self.index = 0
+        while k < 5000:
+            if(k % 50 == 0 and self.index != len(self.xrefarr)):
+                self.xref = self.xrefarr[self.index]
+                self.yref = self.yrefarr[self.index]
+                self.index+=1
             targetValues = {"xref": self.xref, "yref": self.yref}
             self.psiref[1], self.psiref[0] = self.posc.output(self.state, targetValues)
             tau_des = self.attc.output(self.state, self.psiref)
@@ -93,10 +100,10 @@ class OctorotorBaseEnv(gym.Env):
             reward+=self.reward()
             xarr.append(self.state[0])
             yarr.append(self.state[1])
+            refguessxarr.append(self.psiref[1])
+            refguessyarr.append(self.psiref[0])
             k += 1
-            if self.episode_over():
-                k = 2001
-        return [self.res], reward, True, {"xerror": xarr, "yerror": yarr}
+        return [self.res], reward, True, {"xerror": xarr, "yerror": yarr, "xref": refguessxarr, "yref": refguessyarr}
 
     def reset(self):
         OctorotorParams = self.OctorotorParams
@@ -110,22 +117,22 @@ class OctorotorBaseEnv(gym.Env):
         self.motorController = OctorotorParams["motorController"]
         # between 0.7 and 1.7
         # two motor between 0.5 and 0.9
-        self.res =np.random.choice([0.7, 1.7])
         #self.res = 0.5
-        self.motor.update_r(self.res, 2)
+        #self.motor.update_r(self.res, 2)
         #self.motor.update_r2(self.res, 5)
         self.step_count = 0
         self.total_step_count = OctorotorParams["total_step_count"]
         self.viewer = None
         self.xref = 5
-        self.yref = 5
+        self.yref = 0
         self.index = 0
         self.psiref = np.zeros(3)
         self.state = self.octorotor.get_state()
         self.errors = [self.xref-self.state[0], self.yref-self.state[1], self.zref-self.state[2]]
         self.eulererrors = [self.state[3] - self.psiref[0], self.state[4]-self.psiref[1], self.state[5]-self.psiref[2]]
         state = np.append(self.errors, self.eulererrors)
-        guess = np.random.normal(self.res, 0.1)
+        #guess = np.random.normal(self.res, 0.1)
+        self.res = 0.2371
         return self.res
 
     def render(self,mode='human'):
