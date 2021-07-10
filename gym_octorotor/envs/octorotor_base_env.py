@@ -36,8 +36,8 @@ class OctorotorBaseEnv(gym.Env):
         self.state = self.octorotor.get_state()
         self.xref = 5
         self.yref = 0
-        self.xrefarr = pd.read_csv("./Paths/EpathX6.csv", header=None).iloc[:, 1]
-        self.yrefarr = pd.read_csv("./Paths/EpathY6.csv", header=None).iloc[:, 1]
+        self.xrefarr = pd.read_csv("./Paths/EpathX5.csv", header=None).iloc[:, 1]
+        self.yrefarr = pd.read_csv("./Paths/EpathY5.csv", header=None).iloc[:, 1]
         self.allocation = ControlAllocation(OctorotorParams)
         self.resistance = np.full(8, OctorotorParams["resistance"])
         self.dt = OctorotorParams["dt"]
