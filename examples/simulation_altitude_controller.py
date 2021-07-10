@@ -46,10 +46,10 @@ MotorParams = {
 }
 
 PositionParams = {
-        "kpx": 0.2,
-        "kdx":  0,
-        "kpy": 0.2,
-        "kdy": 0,
+        "kpx": 0.1,
+        "kdx":  0.1,
+        "kpy": 0.1,
+        "kdy": 0.1,
         "min_angle": -12*math.pi/180,
         "max_angle": 12*math.pi/180
 }

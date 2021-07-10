@@ -30,6 +30,7 @@ class PositionController:
         psi = currentState[11]
         x = currentState[0]
         y = currentState[1]
+        print(x)
         xdot = currentState[3]
         ydot = currentState[4]
         xerror = xref - x
@@ -43,3 +44,9 @@ class PositionController:
         theta_des = min(max(self.min_angle, theta_des), self.max_angle)
         phi_des = min(max(self.min_angle, phi_des), self.max_angle)
         return theta_des, phi_des
+
+    def update_params(self, action):
+        self.kpx = action[0]
+        self.kdx = action[1]
+        self.kpy = action[2]
+        self.kdy = action[3]
