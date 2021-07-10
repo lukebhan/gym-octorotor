@@ -2,6 +2,7 @@ import numpy as np
 import scipy.integrate
 import math
 from numba import jit
+from filterpy.kalman import UnscentedKalmanFilter, MerweScaledSigmaPoints
 
 @jit 
 def _calc_rotation_matrix(angles):
@@ -27,7 +28,6 @@ def _calc_rotation_inverse_a(angle):
     r = np.array([[1, sphi*tt, nphi*tt], [0, nphi, -sphi], [0, sphi/ctheta, nphi/ctheta]], dtype="float32")
     return r
 
-#@jit
 def _state_dot(time, state, T, m0, g, tau, invJ, J):
     state_dot = np.zeros(12, dtype="float32")
     pos_dot = _calc_rotation_matrix(state[6:9]).dot(np.array([state[3], state[4], state[5]]))
@@ -62,7 +62,11 @@ def _state_dot(time, state, T, m0, g, tau, invJ, J):
 
 class Octocopter:
     def __init__(self, OctorotorParams, stepNum = 0, T=0, tau=np.array([0,0, 0])):
+        self.prevx = [0, 0]
+        self.xfilter = []
+        self.yfilter = []
         self.stepNum = stepNum
+
         # State vector looks like
         # Pos (x, y, z) , Vel (x, y, z), Orient (Phi, Theta, Psi), AngVel (Phi, Theta, Psi)
         self.state = np.zeros(12, dtype = np.float32)
@@ -83,7 +87,6 @@ class Octocopter:
         # Setup ODE Integrator
         self.ode = scipy.integrate.ode(self.state_dot)
 
-    
     def state_dot(self, time, state):
         return _state_dot(time, self.state, np.float32(self.T), self.m0, self.g, np.float32(self.tau), self.invJ, self.J)
 

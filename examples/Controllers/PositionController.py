@@ -30,6 +30,7 @@ class PositionController:
         psi = currentState[11]
         x = currentState[0]
         y = currentState[1]
+        print(x)
         xdot = currentState[3]
         ydot = currentState[4]
         xerror = xref - x

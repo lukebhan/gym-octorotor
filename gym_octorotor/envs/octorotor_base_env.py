@@ -7,6 +7,10 @@ from .Actuation import ControlAllocation
 import pandas as pd
 import numpy as np
 import math
+from filterpy.kalman import UnscentedKalmanFilter, MerweScaledSigmaPoints
+
+def hx(x):
+    return x
 
 class OctorotorBaseEnv(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -32,6 +36,8 @@ class OctorotorBaseEnv(gym.Env):
         self.state = self.octorotor.get_state()
         self.xref = 5
         self.yref = 0
+        self.xrefarr = pd.read_csv("./Paths/EpathX6.csv", header=None).iloc[:, 1]
+        self.yrefarr = pd.read_csv("./Paths/EpathY6.csv", header=None).iloc[:, 1]
         self.allocation = ControlAllocation(OctorotorParams)
         self.resistance = np.full(8, OctorotorParams["resistance"])
         self.dt = OctorotorParams["dt"]
@@ -47,7 +53,6 @@ class OctorotorBaseEnv(gym.Env):
         self.zref = 0
         self.psiref = np.zeros(3)
         self.reward_discount = OctorotorParams["reward_discount"]
-
         # OpenAI Gym Params
         # State vector
         # state[0:2] pos
@@ -62,6 +67,14 @@ class OctorotorBaseEnv(gym.Env):
         #U = [T, tau]
         self.action_space = spaces.Box(np.array([0.1, 0.1, 0.1, 0.1]), np.array([1, 1, 1, 1]), dtype="float32")
         self.viewer = None
+        # introduce filtering for parameter estimator
+        points = MerweScaledSigmaPoints(6, alpha=.1, beta=2, kappa=0)
+        self.kf = UnscentedKalmanFilter(dim_x=6, dim_z=6, dt=OctorotorParams["dt"], fx=self.fx, hx=hx, points=points)
+        self.kf.x = np.zeros(6)
+
+    def fx(self, x, dt):
+        res = self.octorotor.state_dot(dt, self.state.copy())
+        return x + np.array([res[0]*dt, res[1]*dt, res[2]*dt, res[3]*dt, res[4]*dt, res[5]*dt])
 
     def step(self, action):
         # Run through control allocation, motor controller, motor, and octorotor dynamics in this order
@@ -78,16 +91,33 @@ class OctorotorBaseEnv(gym.Env):
         k = 0
         refguessxarr = []
         refguessyarr = []
+        xestimate = []
+        yestimate = []
+        psi0 = []
+        psi1 = []
         self.index = 0
-        while k < 5000:
-            if(k % 50 == 0 and self.index != len(self.xrefarr)):
+        while k < 3000:
+            #if abs(self.state[0]-self.xref) < 1 and abs(self.state[1]-self.yref) < 1:
+            if k % 100 == 0:
                 self.xref = self.xrefarr[self.index]
                 self.yref = self.yrefarr[self.index]
                 self.index+=1
             targetValues = {"xref": self.xref, "yref": self.yref}
-            self.psiref[1], self.psiref[0] = self.posc.output(self.state, targetValues)
-            tau_des = self.attc.output(self.state, self.psiref)
-            T_des = self.altc.output(self.state, self.zref)
+            if k % 100 == 0:
+                self.kf.update(np.array([self.state[0]+np.random.normal(0, 0.75), self.state[1]+np.random.normal(0, 0.75), self.state[2], self.state[3]+np.random.normal(0, 0.015), self.state[4]+np.random.normal(0, 0.015), self.state[5]]))
+            self.kf.predict()
+            self.state_estimate = self.state.copy()
+            self.state_estimate[0] = self.kf.x[0].copy()
+            self.state_estimate[1] = self.kf.x[1].copy()
+            self.state_estimate[3] = self.kf.x[3].copy()
+            self.state_estimate[4] = self.kf.x[4].copy()
+            xestimate.append(self.state_estimate[0])
+            yestimate.append(self.state_estimate[1])
+
+            self.psiref[1], self.psiref[0] = self.posc.output(self.state_estimate, targetValues)
+            orange, apple = self.posc.output(self.state, targetValues)
+            tau_des = self.attc.output(self.state_estimate, self.psiref)
+            T_des = self.altc.output(self.state_estimate, self.zref)
             udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32")
             #udes = np.array([T_des, tau_des[0], tau_des[1], tau_des[2]], dtype="float32")
             omega_ref = self.allocation.get_ref_velocity(udes)
@@ -98,12 +128,14 @@ class OctorotorBaseEnv(gym.Env):
             self.octorotor.update(self.dt)
             self.state = self.octorotor.get_state()
             reward+=self.reward()
+            refguessxarr.append(self.xref)
+            refguessyarr.append(self.yref)
+            k += 1
             xarr.append(self.state[0])
             yarr.append(self.state[1])
-            refguessxarr.append(self.psiref[1])
-            refguessyarr.append(self.psiref[0])
-            k += 1
-        return [self.res], reward, True, {"xerror": xarr, "yerror": yarr, "xref": refguessxarr, "yref": refguessyarr}
+            psi0.append(self.psiref[0])
+            psi1.append(self.psiref[1])
+        return [self.res], reward, True, {"xerror": xarr, "yerror": yarr, "xref": refguessxarr, "yref": refguessyarr, "xestimate": xestimate, "yestimate": yestimate, "psi0": psi0, "psi1": psi1}
 
     def reset(self):
         OctorotorParams = self.OctorotorParams
