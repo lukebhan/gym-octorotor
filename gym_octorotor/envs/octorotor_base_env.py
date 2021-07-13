@@ -73,6 +73,8 @@ class OctorotorBaseEnv(gym.Env):
         self.kf.x = np.zeros(6)
 
     def fx(self, x, dt):
+        estimate = self.state.copy()
+        estimate[0:5] = x[0:5]
         res = self.octorotor.state_dot(dt, self.state.copy())
         return x + np.array([res[0]*dt, res[1]*dt, res[2]*dt, res[3]*dt, res[4]*dt, res[5]*dt])
 
@@ -96,7 +98,7 @@ class OctorotorBaseEnv(gym.Env):
         psi0 = []
         psi1 = []
         self.index = 0
-        while k < 3000:
+        while k < 15000:
             #if abs(self.state[0]-self.xref) < 1 and abs(self.state[1]-self.yref) < 1:
             if k % 100 == 0:
                 self.xref = self.xrefarr[self.index]
