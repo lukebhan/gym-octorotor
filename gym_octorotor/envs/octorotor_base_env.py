@@ -73,10 +73,27 @@ class OctorotorBaseEnv(gym.Env):
         self.kf.x = np.zeros(6)
 
     def fx(self, x, dt):
-        estimate = self.state.copy()
-        estimate[0:5] = x[0:5]
-        res = self.octorotor.state_dot(dt, self.state.copy())
-        return x + np.array([res[0]*dt, res[1]*dt, res[2]*dt, res[3]*dt, res[4]*dt, res[5]*dt])
+        u = self.octorotor.get_u()
+        x_pos = x[0].copy()
+        y_pos = x[1].copy()
+        z_pos = x[2].copy()
+        v_x = x[3].copy()
+        v_y = x[4].copy()
+        v_z = x[5].copy()
+        phi = self.state[6].copy()
+        theta = self.state[7].copy()
+        psi = self.state[8].copy()
+        a_x = u[0]
+        a_y = u[1]
+        a_z = u[2]
+        p = u[3]
+        q = u[4]
+        r = u[5]
+        dvdx = math.cos(psi)*math.cos(theta)*a_x + (math.cos(psi)*math.sin(theta)*math.sin(phi)-math.sin(psi)*math.cos(phi))*a_y + (math.cos(psi)*math.sin(theta)*math.cos(phi)+math.sin(psi)*math.sin(phi))*a_z
+        dvdy = math.sin(psi)*math.cos(theta)*a_x + (math.sin(psi)*math.sin(theta)*math.sin(phi)+math.cos(psi)*math.cos(phi))*a_y + (math.sin(psi)*math.sin(theta)*math.cos(phi)-math.cos(psi)*math.sin(phi))*a_z
+        dvdz = -math.sin(theta)*a_x + math.cos(theta)*math.sin(phi)*a_y + math.cos(theta)*math.cos(phi)*a_z 
+        dxdt = np.array([v_x*dt, v_y*dt, v_z*dt, dvdx*dt, dvdy*dt, dvdz*dt])
+        return x + dxdt
 
     def step(self, action):
         # Run through control allocation, motor controller, motor, and octorotor dynamics in this order
@@ -105,8 +122,11 @@ class OctorotorBaseEnv(gym.Env):
                 self.yref = self.yrefarr[self.index]
                 self.index+=1
             targetValues = {"xref": self.xref, "yref": self.yref}
-            if k % 100 == 0:
-                self.kf.update(np.array([self.state[0]+np.random.normal(0, 0.75), self.state[1]+np.random.normal(0, 0.75), self.state[2], self.state[3]+np.random.normal(0, 0.015), self.state[4]+np.random.normal(0, 0.015), self.state[5]]))
+            if k % 1 == 0:
+                self.gps = self.state.copy()
+                self.gps[0] += np.random.normal(0, 0.75)
+                self.gps[1] += np.random.normal(0, 0.75)
+            self.kf.update(np.array([self.gps[0], self.gps[1], self.gps[2], self.gps[3], self.gps[4], self.gps[5]]))
             self.kf.predict()
             self.state_estimate = self.state.copy()
             self.state_estimate[0] = self.kf.x[0].copy()

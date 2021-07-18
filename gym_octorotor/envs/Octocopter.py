@@ -47,6 +47,7 @@ def _state_dot(time, state, T, m0, g, tau, invJ, J):
     state_dot[3] = pos_ddot[0]
     state_dot[4] = pos_ddot[1]
     state_dot[5] = pos_ddot[2]
+    u = np.array([pos_ddot[0].copy(), pos_ddot[1].copy(), pos_ddot[2].copy(), state[9].copy(), state[10].copy, state[11].copy()])
 
     ang_dot = _calc_rotation_inverse_a(state[6:9]).dot(np.array([state[9], state[10], state[11]]))
     state_dot[6] = ang_dot[0]
@@ -58,7 +59,7 @@ def _state_dot(time, state, T, m0, g, tau, invJ, J):
     state_dot[9] = ang_ddot[0]
     state_dot[10] = ang_ddot[1]
     state_dot[11] = ang_ddot[2]
-    return state_dot
+    return state_dot, u
 
 class Octocopter:
     def __init__(self, OctorotorParams, stepNum = 0, T=0, tau=np.array([0,0, 0])):
@@ -66,6 +67,7 @@ class Octocopter:
         self.xfilter = []
         self.yfilter = []
         self.stepNum = stepNum
+        self.u = np.zeros(6)
 
         # State vector looks like
         # Pos (x, y, z) , Vel (x, y, z), Orient (Phi, Theta, Psi), AngVel (Phi, Theta, Psi)
@@ -88,7 +90,9 @@ class Octocopter:
         self.ode = scipy.integrate.ode(self.state_dot)
 
     def state_dot(self, time, state):
-        return _state_dot(time, self.state, np.float32(self.T), self.m0, self.g, np.float32(self.tau), self.invJ, self.J)
+        state, u =_state_dot(time, self.state, np.float32(self.T), self.m0, self.g, np.float32(self.tau), self.invJ, self.J)
+        self.u = u
+        return state;
 
     def update(self, dt):
         self.stepNum += 1
@@ -122,3 +126,6 @@ class Octocopter:
     def set_pos(self, x, y):
         self.state[0] = x
         self.state[1] = y
+
+    def get_u(self):
+        return self.u
