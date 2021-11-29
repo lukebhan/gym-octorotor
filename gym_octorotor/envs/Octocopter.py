@@ -2,7 +2,6 @@ import numpy as np
 import scipy.integrate
 import math
 from numba import jit
-from filterpy.kalman import UnscentedKalmanFilter, MerweScaledSigmaPoints
 
 @jit 
 def _calc_rotation_matrix(angles):
